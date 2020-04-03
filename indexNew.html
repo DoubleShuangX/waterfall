@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title></title>
+		<link rel="stylesheet" type="text/css" href="alert.css"/>
+	</head>
+	<style type="text/css">
+		*{
+			margin: 0;
+			padding: 0;
+		}
+		
+		html,body{
+			height: 100%;
+		}
+		
+		body{
+			background: #f4f4f4;
+		}
+		
+		ul{
+			list-style: none;
+		}
+		
+		ul{
+			font-size: 0.26rem;
+		}
+		
+		ul li .img_box{
+			
+		}
+		
+		ul li:nth-child(odd) img{
+			
+		}
+		
+		ul li:nth-child(even) img{
+			
+		}
+		
+		ul li img{
+			margin: 0 auto;
+    		display: block;
+    		border-radius: 6px 6px 0 0;
+		}
+		
+		ul li .title{
+			width: 90%;
+			margin: 0 auto;
+			background: white;
+		    padding: 5px;
+		    box-sizing: border-box;
+		}
+		
+		#alertBox{
+	        width: 5rem;
+		    height: 2rem;
+		    position: fixed;
+		    background: gray;
+		    top: 50%;
+		    left: 50%;
+		    transform: translate(-50%, -50%);
+		    opacity: 0.8;
+		    font-size: 0.5rem;
+		    text-align: center;
+		    line-height: 2rem;
+		    color: white;
+		    display: none;
+		}
+	</style>
+	<body>
+		<div id="wrapper">
+			<ul>
+				
+			</ul>
+		</div>
+		<div id="alertBox">
+			数据加载中...
+		</div>
+	</body>
+	<script src="jquery.min.js" type="text/javascript"></script>
+	<script src="alert.js" type="text/javascript"></script>
+	<script>
+		window.onresize = function(){
+			document.documentElement.style.fontSize = document.documentElement.clientWidth / 7.5 + 'px'
+		}
+		document.documentElement.style.fontSize = document.documentElement.clientWidth / 7.5 + 'px'
+		window.onload = function(){
+			let pageNums = 5;
+			let fn = waterfall()
+			fn(pageNums++)
+			
+			window.onscroll = function(){
+				let windowHeight = $(window).height();
+				let pageHeight = $('#wrapper').height();
+				let scrollTop = $(window).scrollTop();
+				console.log(windowHeight,pageHeight,scrollTop)
+				if(windowHeight + Math.ceil(scrollTop) >= pageHeight && !$('ul').hasClass('loading')){
+					fn(pageNums++)
+				}
+			}
+			
+		}
+		
+		function waterfall(pageNums){
+			let colNum = 2,		// 列数
+				h = [],			// 每列的高度
+				windowHeight = window.innerWidth;
+			return function render(pageNums){
+				$('ul').addClass('loading')
+				$.ajax({
+					url: 'https://shop-wx.yunrongt.com/moreProducts',
+					data: {
+						pageNum: pageNums,
+						pageSize: 10
+					},
+					dataType: 'json',
+					success: function (res) {
+						$('ul').removeClass('loading')
+						console.log(res)
+						let items = res.data.list;	// 数据列表
+						let imgNum = [];	// 图片加载个数
+						items.forEach((item,index) => {
+							let img = new Image();
+							img.src = "http://sms-shop.oss-cn-beijing.aliyuncs.com/" + item.bannerpic.split(',')[0]
+							if (img.complete) { 
+								console.log(0)
+								add(img)
+								return; 
+							}
+							
+							new Promise((resolve,reject) => {
+								img.onload = function () {
+									$('#alertBox').show()
+									console.log(1111)
+									imgNum.push(img)
+									item.imgWidth = img.width;
+									item.imgHeight = img.height
+									console.log(items)
+									if(imgNum.length == 10){
+										$('#alertBox').hide()
+										items.forEach((item,index) => {
+											if(h.length<colNum){
+												let _li = $(`<li>
+													<img src="http://sms-shop.oss-cn-beijing.aliyuncs.com/${item.bannerpic.split(',')[0]}">
+													<p class="title">${item.title}</p>
+												</li>`)
+												_li.css({ 'position': 'absolute', 'width': 1/colNum*windowHeight+'px', 'top': 0, 'left': 1/colNum*h.length*windowHeight+'px', 'padding':'10px 0 0'})
+												_li.find("img").css({'width':  1/colNum*windowHeight*0.9+'px','height': 1/colNum*windowHeight*0.9*item.imgHeight/item.imgWidth})
+												$('ul').append(_li)
+												console.log(_li.outerHeight())
+												h.push(_li.outerHeight())
+											}else{
+												let minHeight = Math.min(...h);
+												let i = h.indexOf(minHeight);
+												let _li = $(`<li>
+													<img src="http://sms-shop.oss-cn-beijing.aliyuncs.com/${item.bannerpic.split(',')[0]}">
+													<p class="title">${item.title}</p>
+												</li>`)
+												_li.css({ 'position': 'absolute', 'width': 1/colNum*windowHeight+'px', 'top': minHeight+'px', 'left': 1/colNum*i*windowHeight+'px', 'padding':'10px 0 0'})
+												_li.find("img").css({'width':  1/colNum*windowHeight*0.9+'px','height': 1/colNum*windowHeight*0.9*item.imgHeight/item.imgWidth})
+												$('ul').append(_li)
+												console.log(_li.outerHeight())
+												h[i] = _li.outerHeight()+minHeight
+												console.log(h)
+												$('ul').height(Math.max(...h))
+											}
+										})
+										
+									}
+									console.log(imgNum[index])
+								}
+							}).then((data) => {
+								console.log(data)
+							})
+							function add(img){
+								let imgWidth = img.width;
+								let imgHeight = img.height;
+								console.log(img)
+								console.log(img.width,img.height)
+								if(h.length<colNum){
+									let _li = $(`<li></li>`)
+									_li.append(img)
+									_li.append($(`<p class="title">${item.title}</p>`))
+									_li.css({ 'position': 'absolute', 'width': 1/colNum*windowHeight+'px', 'top': 0, 'left': 1/colNum*h.length*windowHeight+'px', 'padding':'10px 0 0'})
+									_li.find("img").css({'width':  1/colNum*windowHeight*90%+'px','height': 1/colNum*windowHeight*0.9*imgHeight/img.width})
+									$('ul').append(_li)
+									console.log(_li.outerHeight())
+									h.push(_li.outerHeight())
+								}else{
+									let minHeight = Math.min(...h);
+									let i = h.indexOf(minHeight);
+									let _li = $(`<li></li>`)
+									_li.append(img)
+									_li.append($(`<p class="title">${item.title}</p>`))
+									_li.css({ 'position': 'absolute', 'width': 1/colNum*windowHeight+'px', 'top': minHeight+'px', 'left': 1/colNum*i*windowHeight+'px', 'padding':'10px 0 0'})
+									_li.find("img").css({'width':  1/colNum*windowHeight*90%+'px','height': 1/colNum*windowHeight*0.9*imgHeight/img.width})
+									$('ul').append(_li)
+									console.log(_li.outerHeight())
+									h[i] = _li.outerHeight()+minHeight
+									console.log(h)
+									$('ul').height(Math.max(...h))
+								}
+							}
+						})
+					}
+				})
+			}
+		}
+		
+
+		
+	</script>
+</html>
